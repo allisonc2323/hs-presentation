@@ -1,0 +1,38 @@
+<!-- prompt_form.html -->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LLM Prompt Form</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#submit-btn').click(function(e) {
+                e.preventDefault();
+                
+                var userInput = $('#prompt').val();
+                
+                $.ajax({
+                    type: 'POST',
+                    url: '{% url 'prompt_form' %}',
+                    data: {
+                        'prompt': userInput,
+                        'csrfmiddlewaretoken': '{{ csrf_token }}'
+                    },
+                    success: function(response) {
+                        $('#result').html('<p>LLM Used: ' + response.llm_name + '</p><p>Best Answer: ' + response.best_answer + '</p>');
+                    }
+                });
+            });
+        });
+    </script>
+</head>
+<body>
+    <form id="promptForm">
+        <input type="text" id="prompt" name="prompt" placeholder="Enter your prompt">
+        <button type="button" id="submit-btn">Submit</button>
+    </form>
+    <div id="result"></div>
+</body>
+</html>
+
