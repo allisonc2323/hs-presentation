@@ -1,2 +1,3 @@
 .env
 csvall/vertex_creds.json
+venv/

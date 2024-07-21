@@ -9,14 +9,19 @@ from crewai_tools import tool
 from langchain_core.example_selectors import SemanticSimilarityExampleSelector
 from langchain_core.prompts import FewShotPromptTemplate, PromptTemplate
 from langchain_community.utilities import SerpAPIWrapper
-from langchain.agents import load_tools
+from langchain_community.agent_toolkits.load_tools import load_tools
 from crewai import Crew, Process, Agent, Task
 import json
 import re
+from dotenv import load_dotenv, dotenv_values
 
-warnings.filterwarnings('ignore')
+#load env file
+load_dotenv()
 
-
+#set up three different LLMs
+vertex = ChatVertexAI(model="gemini-pro")
+anthropic = ChatBedrock(model_id="anthropic.claude-3-5-sonnet-20240620-v1:0")
+openai = AzureChatOpenAI(deployment_name="gpt4sap")
 
 #Semantic similarity tool:
 def findBestAnswer(prompt):
@@ -36,6 +41,16 @@ def findBestAnswer(prompt):
             {"response": response_2},
             {"response": response_3}
         ]
+
+        #Set up embeddings + vectorstore
+        embeddings = AzureOpenAIEmbeddings(
+            azure_deployment="e4sap",
+        )
+        vectorstore = PineconeVectorStore(
+            index="quickstart",
+            embedding=embeddings,
+            namespace="gecko",
+        )
 
         #Selector for greatest cosine similarity
         similarity_selector = SemanticSimilarityExampleSelector.from_examples(
@@ -66,7 +81,7 @@ def findBestAnswer(prompt):
         verbose=True,
         llm=anthropic,
         allow_delegation=False,
-        tools=serper,
+        #tools=serper,
         cache=False
     )
 
@@ -78,7 +93,7 @@ def findBestAnswer(prompt):
         verbose=True,
         llm=vertex,
         allow_delegation=False,
-        tools=serper,
+        #tools=serper,
         cache=False
     )
 
@@ -90,7 +105,7 @@ def findBestAnswer(prompt):
         verbose=True,
         llm=openai,
         allow_delegation=False,
-        tools=serper,
+        #tools=serper,
         cache=False
     )
 
@@ -106,20 +121,38 @@ def findBestAnswer(prompt):
 
     user_input = prompt
     research_task1 = Task \
-        (description="Answer the following question from the user. You cannot use context provided to answer, you must find your own. Do not use any tools for fact-based questions about a past event. Use your own knowledge base as a priority." + user_input,
-         agent=researcher_1, expected_output='String answer to user query')
+        (description="Answer the following question from the user. \
+         You cannot use context provided to answer, you must find your own.\
+         Do not use any tools for fact-based questions about a past event. \
+         Use your own knowledge base as a priority." + user_input,
+         agent=researcher_1, expected_output='String answer to user query', async_execution = True)
     research_task2 = Task \
-        (description="Answer the following question from the user. You cannot use context or knowledge from previous researchers to answer, you must find your own. Do not use any tools for fact-based questions about a past event. Use your own knowledge base as a priority." + user_input,
-         agent=researcher_2, expected_output='String answer to user query')
+        (description="Answer the following question from the user. \
+         You cannot use context or knowledge from previous researchers to answer, you must find your own. \
+         Do not use any tools for fact-based questions about a past event. \
+         Use your own knowledge base as a priority." + user_input,
+         agent=researcher_2, expected_output='String answer to user query', async_execution = True)
     research_task3 = Task \
-        (description="Answer the following question from the user. You cannot use context or knowledge from previous researchers to answer, you must find your own. Do not use any tools for fact-based questions about a past event. Use your own knowledge base as a priority." + user_input,
-         agent=researcher_3, expected_output='String answer to user query')
+        (description="Answer the following question from the user. \
+         You cannot use context or knowledge from previous researchers to answer, you must find your own. \
+         Do not use any tools for fact-based questions about a past event. \
+         Use your own knowledge base as a priority." + user_input,
+         agent=researcher_3, expected_output='String answer to user query', async_execution = True)
 
     #Manager
-    manager_task = Task \
-        (description="Using the final raw outputs from Anthropic Researcher, Vertex Researcher, and OpenAI Researcher (research_task1.output.raw_output, research_task2.output.raw_output, and research_task3.output.raw_output), you MUST use the similarity search tool to calculate which has the most similar response to the original user query (" + user_input + "). Use the ENTIRE final output from each of the three researchers as string input into the similarity search tool along with the user input. Output the ENTIRETY of the most similar response ALONG with the similarity score and which researcher was selected.",
-         agent=manager,
-         expected_output="String answer to user query with the highest similarity score along with similarity score and which researcher was selected")
+    manager_task  = Task\
+        (description="Using the final raw outputs from Anthropic Researcher, \
+         Vertex Researcher, and OpenAI Researcher (research_task1.output.raw, \
+         research_task2.output.raw, and research_task3.output.raw), \
+         you MUST use the similarity search tool to calculate which has the most similar \
+         response to the original user query (" + user_input + "). Use the ENTIRE final \
+        output from each of the three researchers as string input into the similarity \
+        search tool along with the user input. Output the ENTIRETY of the most \
+        similar response ALONG with the similarity score and which researcher \
+        was selected.", agent = manager, expected_output = "JSON in the \
+        form of the response template: {\"Response\": most_similar_response, \
+        \"LLM Name\": researcher_name, \"Similarity Score\": similarity_score}")
+
 
     #Creating sequential chain of agents
     crew = Crew(
@@ -131,36 +164,33 @@ def findBestAnswer(prompt):
     # Start the crew's work
     result = crew.kickoff()
     task1_output = research_task1.output
-    final_output_Anthropic = task1_output.raw_output
+    final_output_Anthropic = task1_output.raw
     print("Output from Anthropic")
     print(final_output_Anthropic)
     task2_output = research_task2.output
-    final_output_vertex = task2_output.raw_output
+    final_output_vertex = task2_output.raw
     print("Output from Vertex")
     print(final_output_vertex)
     task3_output = research_task3.output
-    final_output_openai = task3_output.raw_output
+    final_output_openai = task3_output.raw
     print("Output from Azure OpenAI")
     print(final_output_openai)
     print("---------------")
     print("Most Relevant Response")
     task4_output = manager_task.output
-    final_output_similarity = task4_output.raw_output
-
+    final_output_similarity = task4_output.raw
     llm_name = final_output_similarity  #
     best_answer = final_output_similarity  #
     # Extract the JSON portion using regex
     pattern = r'json\s+({.*?})'
     match = re.search(pattern, final_output_similarity, re.DOTALL)
-
     if match:
         json_str = match.group(1)  # Extract the JSON string
-        json_object = json.dumps(json_str)  # Convert to JSON object
-        json_str += "}"
+        print(json_str)
         json_object = json.loads(json_str)
-        best_answer = json_object["most_similar_response"]["content"]
-        llm_name = json_object["most_similar_response"]["researcher"].strip("Researcher")
-    return llm_name, best_answer
+        best_answer = json_object["Response"]
+        llm_name = json_object["LLM Name"].strip("Researcher")
+    return llm_name, best_answer, final_output_Anthropic, final_output_vertex, final_output_openai
 
 
 # llmChain.py

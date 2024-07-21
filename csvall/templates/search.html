@@ -23,12 +23,17 @@
             margin-bottom: 10px;
         }
 
+        .anthropic, .vertex, .openai {
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid rgb(0, 0, 0);
+        }
         .response_box:after {
             padding: 10px;
         }
 
         .response_box {
-            height: 300px;
+            height: 500px;
         }
         
         .similar_answer{
@@ -41,12 +46,13 @@
         }
 
     </style>
+
 </head>
 <body>
-    <img src="../static/sap_logo.png" alt="SAP Logo">
+    <img src="../static/sap_logo.png" style="height: 100px" alt="SAP Logo">
     <h1>LLM Demo Website</h1>
     <div class = "response_box">
-        <form method="post" id="searchForm" enctype="multipart/form-data">
+        <form method="post" id="searchForm" enctype="multipart/form-data">{% csrf_token %}
            <div class = "column">
              <!-- Prompt -->
             <label for="prompt">Prompt:</label><br>
@@ -54,29 +60,31 @@
              <!-- Submit Button -->
              <input type="submit" value="Submit">
            </div>
+        
 
             <div class = "column">
                 <!-- Anthropic Response -->
                 <div class = "individual_response">
-                    <label for="database">Anthropic Response:</label><br>
-                    <input type="text" id="response" name="response"><br>
+                    <label>Anthropic Response:</label><br>
+                    <div id = "anthropic" class = "anthropic"><p>{{ anthropic }}</p></div>
                 </div>
                 <!-- Vertex Response -->
                 <div class = "individual_response">
-                    <label for="database">Vertex Response:</label><br>
-                    <input type="text" id="response" name="response"><br>
+                    <label>Vertex Response:</label><br>
+                    <div id = "vertex" class = "vertex"><p>{{ vertex }}</p></div>
                 </div>
                 <!-- Azure OpenAI Response -->
                 <div class = "individual_response">
-                    <label for="database">Azure OpenAI Response:</label><br>
-                    <input type="text" id="response" name="response"><br>
+                    <label>Azure OpenAI Response:</label><br>
+                    <div id = "openai" class = "openai"><p>{{ openai }}</p></div>
                 </div>
             </div>
 
         </form>
     </div>
-    <h3>Most Similar Answer</h3>
-    <div class = "similar_answer">
-    </div>
+    <br>
+    <h3>Most Relevant Answer</h3>
+    <p>LLM = {{ llm_name }}</p>
+    <div class = "similar_answer">{{ best_answer }}</div>
 </body>
 </html>

@@ -5,15 +5,19 @@ from . import llmChain
 import os
 
 
-def prompt_form(request):
+def search(request):
     if request.method == 'GET':
-        return render(request, 'prompt_form.html')
+        return render(request, 'search.html')
 
     elif request.method == 'POST':
         prompt = request.POST.get('prompt', '')  # Get user input from form
-        llm_name, best_answer = llmChain.findBestAnswer(prompt)
+        llm_name, best_answer, final_output_anthropic, final_output_vertex, final_output_openai\
+              = llmChain.findBestAnswer(prompt)
         response_data = {
-            'llm_name': llm_name,
-            'best_answer': best_answer,
+            "llm_name": llm_name,
+            "best_answer": best_answer,
+            "anthropic": final_output_anthropic,
+            "vertex": final_output_vertex, 
+            "openai": final_output_openai
         }
-        return JsonResponse(response_data)
+        return render(request, 'search.html', response_data)
