@@ -81,7 +81,7 @@ def findBestAnswer(prompt):
         verbose=True,
         llm=anthropic,
         allow_delegation=False,
-        #tools=serper,
+        tools=serper,
         cache=False
     )
 
@@ -93,7 +93,7 @@ def findBestAnswer(prompt):
         verbose=True,
         llm=vertex,
         allow_delegation=False,
-        #tools=serper,
+        tools=serper,
         cache=False
     )
 
@@ -105,7 +105,7 @@ def findBestAnswer(prompt):
         verbose=True,
         llm=openai,
         allow_delegation=False,
-        #tools=serper,
+        tools=serper,
         cache=False
     )
 
