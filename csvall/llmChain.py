@@ -47,9 +47,9 @@ def findBestAnswer(prompt):
             azure_deployment="e4sap",
         )
         vectorstore = PineconeVectorStore(
-            index="quickstart",
             embedding=embeddings,
             namespace="gecko",
+            index="gecko"
         )
 
         #Selector for greatest cosine similarity
@@ -179,8 +179,6 @@ def findBestAnswer(prompt):
     print("Most Relevant Response")
     task4_output = manager_task.output
     final_output_similarity = task4_output.raw
-    llm_name = final_output_similarity  #
-    best_answer = final_output_similarity  #
     # Extract the JSON portion using regex
     pattern = r'json\s+({.*?})'
     match = re.search(pattern, final_output_similarity, re.DOTALL)
