@@ -49,7 +49,7 @@ def findBestAnswer(prompt):
         vectorstore = PineconeVectorStore(
             embedding=embeddings,
             namespace="gecko",
-            index="gecko"
+            index_name="gecko"
         )
 
         #Selector for greatest cosine similarity
